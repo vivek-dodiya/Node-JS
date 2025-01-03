@@ -25,9 +25,9 @@ const app = http.createServer(async (req, res) => {
         req.on('end', () => {
             const { name, email, age } = JSON.parse(body);
             const user = new User({ name, email, age });
-            user.save().then(() => {
+            user.save().then((user) => {
                 res.writeHead(201, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'User created successfully' }));
+                res.end(JSON.stringify({ message: 'User created successfully', user}));
             }).catch((err) => {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ message: 'Error creating user' }));
@@ -41,7 +41,43 @@ const app = http.createServer(async (req, res) => {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Error fetching users' }));
         });
-    } 
+    } else if (method === 'PATCH' && req.url.startsWith("/user/")) {
+        const id = req.url.split("/")[2];
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+        });
+        req.on('end', () => {
+            const { name, email, age } = JSON.parse(body);
+            User.findByIdAndUpdate(id, { name, email, age }, { new: true })
+            .then((user) => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(user));
+            }).catch((err) => {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Error updating user' }));
+            });
+        });
+    } else if (method === 'DELETE' && req.url.startsWith("/user/")) {
+        const id = req.url.split("/")[2];
+        User.findByIdAndDelete(id).then(() => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'User deleted successfully' }));
+        }).catch((err) => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Error deleting user' }));
+        });
+    } else if (method === 'GET' && req.url.startsWith('/user/')) {
+        let _id = req.url.split('/')[2]
+        User.findOne({_id})
+        .then((user)=>{
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(user));
+        }).catch((err)=>{
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Error fetching user' , error : err.message}));
+        })
+    }
 })
 
 app.listen(3000, () => {
